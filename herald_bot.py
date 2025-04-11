@@ -116,6 +116,10 @@ class HeraldBot:
             self.client.create_tweet(text=text)
             logging.info(f"Tweeted: {text}")
             return True
+        except tweepy.TooManyRequests as e:
+            logging.error(f"Twitter rate limit hit: {e}")
+            time.sleep(60)
+            return False
         except Exception as e:
             logging.error(f"Twitter error: {e}")
             return False
@@ -149,7 +153,7 @@ class HeraldBot:
             if self.post_to_x(headline, url, twitter_handle):
                 new_urls.add(url)
                 tweets_sent += 1
-                time.sleep(10)
+                time.sleep(40)  # Increased delay to reduce risk of rate limits
 
         posted_urls.update(new_urls)
         self.save_posted_urls(posted_urls)
