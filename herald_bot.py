@@ -60,6 +60,7 @@ class HeraldBot:
                 if full_url not in urls:
                     urls.append(full_url)
 
+            logging.info(f"Found {len(urls)} article URLs.")
             return urls
         except Exception as e:
             logging.error(f"Failed to fetch article links: {e}")
@@ -96,6 +97,7 @@ class HeraldBot:
             if twitter_tag and twitter_tag.get_text(strip=True).startswith('@'):
                 twitter_handle = twitter_tag.get_text(strip=True)
 
+            logging.info(f"Extracted info for {url}: headline='{headline}', author='{author_name}', twitter_handle='{twitter_handle}'")
             return headline, published, twitter_handle
         except Exception as e:
             logging.warning(f"Could not extract article info from {url}: {e}")
@@ -124,18 +126,23 @@ class HeraldBot:
         tweets_sent = 0
 
         for url in self.fetch_article_urls():
+            logging.info(f"Checking URL: {url}")
+
             if tweets_sent >= self.MAX_TWEETS:
+                logging.info("Max tweets reached.")
                 break
             if url in posted_urls:
+                logging.info(f"Already posted: {url}")
                 continue
 
             headline, published, twitter_handle = self.extract_article_info(url)
             if not headline or not published:
+                logging.info(f"Skipping article due to missing headline or publish time: {url}")
                 continue
 
             age = datetime.now(timezone.utc) - published
             if age.total_seconds() > 86400:
-                logging.info(f"Skipping old article: {url}")
+                logging.info(f"Article too old: {url} (published at {published})")
                 continue
 
             if self.post_to_x(headline, url, twitter_handle):
