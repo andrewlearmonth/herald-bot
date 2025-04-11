@@ -19,12 +19,13 @@ class HeraldBot:
     HEADERS = {"User-Agent": "Mozilla/5.0"}
 
     def __init__(self):
-        self.client = tweepy.Client(
-            consumer_key=os.getenv("TWITTER_API_KEY"),
-            consumer_secret=os.getenv("TWITTER_API_SECRET"),
-            access_token=os.getenv("TWITTER_ACCESS_TOKEN"),
-            access_token_secret=os.getenv("TWITTER_ACCESS_SECRET")
+        auth = tweepy.OAuth1UserHandler(
+            os.getenv("TWITTER_API_KEY"),
+            os.getenv("TWITTER_API_SECRET"),
+            os.getenv("TWITTER_ACCESS_TOKEN"),
+            os.getenv("TWITTER_ACCESS_SECRET")
         )
+        self.client = tweepy.API(auth)
 
         logging.basicConfig(
             level=logging.INFO,
@@ -84,7 +85,6 @@ class HeraldBot:
             else:
                 published = None
 
-            # Extract author name
             author_tag = soup.find('a', class_='author-name')
             author_name = None
             if author_tag:
@@ -94,7 +94,6 @@ class HeraldBot:
                 else:
                     author_name = author_text
 
-            # Extract Twitter handle
             twitter_tag = soup.find('a', class_='twitter-link')
             twitter_handle = None
             if twitter_tag and twitter_tag.get_text(strip=True).startswith('@'):
@@ -115,7 +114,7 @@ class HeraldBot:
         text = text[:280]
 
         try:
-            self.client.create_tweet(text=text)
+            self.client.update_status(status=text)
             logging.info(f"Tweeted: {text}")
             return True
         except tweepy.TweepyException as e:
