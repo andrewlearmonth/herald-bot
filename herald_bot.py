@@ -27,9 +27,12 @@ class HeraldBot:
         )
 
         logging.basicConfig(
-            filename='herald_bot.log',
             level=logging.INFO,
-            format='%(asctime)s - %(levelname)s - %(message)s'
+            format='%(asctime)s - %(levelname)s - %(message)s',
+            handlers=[
+                logging.FileHandler("herald_bot.log"),
+                logging.StreamHandler()
+            ]
         )
 
     def load_posted_urls(self):
