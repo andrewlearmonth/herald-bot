@@ -7,6 +7,7 @@ from bs4 import BeautifulSoup
 import tweepy
 from datetime import datetime, timezone
 from dotenv import load_dotenv
+from atproto import Client as BskyClient
 
 # Load secrets from .env file
 load_dotenv()
@@ -25,6 +26,9 @@ class HeraldBot:
             access_token=os.getenv("TWITTER_ACCESS_TOKEN"),
             access_token_secret=os.getenv("TWITTER_ACCESS_SECRET")
         )
+
+        self.bsky_handle = os.getenv("BSKY_HANDLE")
+        self.bsky_password = os.getenv("BSKY_APP_PASSWORD")
 
         logging.basicConfig(
             level=logging.INFO,
@@ -114,7 +118,7 @@ class HeraldBot:
 
         try:
             self.client.create_tweet(text=text)
-            logging.info(f"Tweeted: {text}")
+            logging.info(f"Tweeted to X: {text}")
             return True
         except tweepy.TooManyRequests as e:
             logging.error(f"Twitter rate limit hit: {e}")
@@ -123,6 +127,20 @@ class HeraldBot:
         except Exception as e:
             logging.error(f"Twitter error: {e}")
             return False
+
+    def post_to_bluesky(self, headline, url):
+        if not self.bsky_handle or not self.bsky_password:
+            logging.warning("Bluesky credentials not set.")
+            return
+
+        message = f"{headline}\n{url}"
+        try:
+            client = BskyClient()
+            client.login(self.bsky_handle, self.bsky_password)
+            client.send_post(message)
+            logging.info(f"Posted to Bluesky: {message}")
+        except Exception as e:
+            logging.error(f"Bluesky post failed: {e}")
 
     def run(self):
         logging.info("Starting Herald bot run.")
@@ -151,9 +169,10 @@ class HeraldBot:
                 continue
 
             if self.post_to_x(headline, url, twitter_handle):
+                self.post_to_bluesky(headline, url)  # Bluesky post without handle
                 new_urls.add(url)
                 tweets_sent += 1
-                time.sleep(40)  # Increased delay to reduce risk of rate limits
+                time.sleep(40)
 
         posted_urls.update(new_urls)
         self.save_posted_urls(posted_urls)
